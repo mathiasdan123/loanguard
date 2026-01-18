@@ -1,0 +1,204 @@
+{
+  "loan_id": "DEMO-001",
+  "loan_name": "Sample Loan DEMO-001",
+  "property_name": "123 Main Street Office Building",
+  "borrower_name": "Sample Borrower LLC",
+  "lender_name": "Sample Bank, N.A.",
+  "original_loan_amount": 10000000,
+  "current_balance": null,
+  "origination_date": "2024-01-15",
+  "maturity_date": "2029-01-15",
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "title": "Quarterly Financial Statements",
+      "category": "financial_reporting",
+      "description": "Borrower must deliver quarterly unaudited financial statements",
+      "plain_language_summary": "Send your quarterly financial statements to the lender within 45 days after each quarter ends",
+      "original_text": "Borrower shall deliver to Lender within forty-five (45) days after the end of each fiscal quarter...",
+      "document_reference": "Section 5.1.1",
+      "deadline": {
+        "description": "45 days after quarter end",
+        "days_after_period_end": 45,
+        "specific_date": null,
+        "day_of_month": null,
+        "frequency": "quarterly"
+      },
+      "threshold": null,
+      "severity": "high",
+      "cure_period_days": null,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    },
+    {
+      "id": "REQ-002",
+      "title": "Annual Audited Financials",
+      "category": "financial_reporting",
+      "description": "Borrower must deliver annual audited financial statements",
+      "plain_language_summary": "Have a CPA audit your financials and send the report within 120 days after year end",
+      "original_text": "Borrower shall deliver to Lender within one hundred twenty (120) days after the end of each fiscal year, audited financial statements...",
+      "document_reference": "Section 5.1.2",
+      "deadline": {
+        "description": "120 days after fiscal year end",
+        "days_after_period_end": 120,
+        "specific_date": null,
+        "day_of_month": null,
+        "frequency": "annual"
+      },
+      "threshold": null,
+      "severity": "critical",
+      "cure_period_days": null,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    },
+    {
+      "id": "REQ-003",
+      "title": "DSCR Covenant",
+      "category": "covenant_compliance",
+      "description": "Maintain minimum Debt Service Coverage Ratio",
+      "plain_language_summary": "Your property's net operating income divided by your loan payments must be at least 1.25x",
+      "original_text": "Borrower shall maintain a Debt Service Coverage Ratio of not less than 1.25:1.00...",
+      "document_reference": "Section 6.2",
+      "deadline": {
+        "description": "Tested quarterly",
+        "days_after_period_end": null,
+        "specific_date": null,
+        "day_of_month": null,
+        "frequency": "quarterly"
+      },
+      "threshold": {
+        "metric": "DSCR",
+        "operator": ">=",
+        "value": 1.25,
+        "secondary_value": null,
+        "unit": "x"
+      },
+      "severity": "critical",
+      "cure_period_days": 30,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    },
+    {
+      "id": "REQ-004",
+      "title": "Property Insurance",
+      "category": "insurance",
+      "description": "Maintain property insurance with specified coverage",
+      "plain_language_summary": "Keep your property insured for full replacement cost. Send proof to lender before each renewal.",
+      "original_text": "Borrower shall maintain property insurance in an amount not less than the full replacement cost...",
+      "document_reference": "Section 4.1",
+      "deadline": {
+        "description": "30 days before policy expiration",
+        "days_after_period_end": null,
+        "specific_date": null,
+        "day_of_month": null,
+        "frequency": "annual"
+      },
+      "threshold": null,
+      "severity": "critical",
+      "cure_period_days": null,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    },
+    {
+      "id": "REQ-005",
+      "title": "Replacement Reserve Deposits",
+      "category": "reserve_funding",
+      "description": "Monthly deposits to replacement reserve",
+      "plain_language_summary": "Deposit $2,500 monthly into your replacement reserve account",
+      "original_text": "Borrower shall deposit with Lender on each Payment Date the sum of $2,500...",
+      "document_reference": "Section 7.3",
+      "deadline": {
+        "description": "Monthly with mortgage payment",
+        "days_after_period_end": null,
+        "specific_date": null,
+        "day_of_month": 1,
+        "frequency": "monthly"
+      },
+      "threshold": {
+        "metric": "Monthly Deposit",
+        "operator": ">=",
+        "value": 2500,
+        "secondary_value": null,
+        "unit": "$"
+      },
+      "severity": "medium",
+      "cure_period_days": null,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    },
+    {
+      "id": "REQ-006",
+      "title": "Monthly Rent Roll",
+      "category": "financial_reporting",
+      "description": "Submit monthly rent roll",
+      "plain_language_summary": "Send a current rent roll showing all tenants, lease terms, and rental rates by the 15th of each month",
+      "original_text": "Borrower shall deliver to Lender by the fifteenth (15th) day of each calendar month a current rent roll...",
+      "document_reference": "Section 5.1.4",
+      "deadline": {
+        "description": "By the 15th of each month",
+        "days_after_period_end": null,
+        "specific_date": null,
+        "day_of_month": 15,
+        "frequency": "monthly"
+      },
+      "threshold": null,
+      "severity": "medium",
+      "cure_period_days": null,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    },
+    {
+      "id": "REQ-007",
+      "title": "Major Lease Approval",
+      "category": "leasing",
+      "description": "Lender approval required for major leases",
+      "plain_language_summary": "Get lender approval before signing any lease over 10,000 SF or with a tenant getting more than 3 months free rent",
+      "original_text": "Borrower shall not enter into any lease for more than 10,000 square feet or containing concessions in excess of three (3) months free rent without Lender's prior written consent...",
+      "document_reference": "Section 8.2",
+      "deadline": {
+        "description": "Prior to lease execution",
+        "days_after_period_end": null,
+        "specific_date": null,
+        "day_of_month": null,
+        "frequency": "as_needed"
+      },
+      "threshold": null,
+      "severity": "high",
+      "cure_period_days": null,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    },
+    {
+      "id": "REQ-008",
+      "title": "Annual Operating Budget",
+      "category": "financial_reporting",
+      "description": "Submit annual operating budget",
+      "plain_language_summary": "Submit next year's operating budget for lender approval by November 15th each year",
+      "original_text": "Not later than November 15 of each year, Borrower shall submit to Lender for approval the proposed annual operating budget...",
+      "document_reference": "Section 5.1.5",
+      "deadline": {
+        "description": "November 15 annually",
+        "days_after_period_end": null,
+        "specific_date": null,
+        "day_of_month": null,
+        "frequency": "annual"
+      },
+      "threshold": null,
+      "severity": "medium",
+      "cure_period_days": null,
+      "status": "unknown",
+      "last_checked": null,
+      "notes": ""
+    }
+  ],
+  "events": [],
+  "source_documents": [],
+  "extraction_date": "2026-01-18T00:34:42.263229"
+}

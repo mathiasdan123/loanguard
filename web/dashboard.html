@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoanGuard — Compliance Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --slate-950: #0f172a;
+            --slate-900: #1e293b;
+            --slate-800: #334155;
+            --slate-700: #475569;
+            --slate-600: #64748b;
+            --slate-400: #94a3b8;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            
+            --red-500: #ef4444;
+            --red-100: #fee2e2;
+            --red-50: #fef2f2;
+            
+            --amber-500: #f59e0b;
+            --amber-100: #fef3c7;
+            --amber-50: #fffbeb;
+            
+            --emerald-500: #10b981;
+            --emerald-100: #d1fae5;
+            --emerald-50: #ecfdf5;
+            
+            --blue-500: #3b82f6;
+            --blue-100: #dbeafe;
+            
+            --font-display: 'Fraunces', Georgia, serif;
+            --font-body: 'DM Sans', -apple-system, sans-serif;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--slate-100);
+            color: var(--slate-900);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        @keyframes countUp {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .animate-fade { animation: fadeIn 0.5s ease-out forwards; }
+        .animate-slide { animation: slideIn 0.4s ease-out forwards; }
+        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+        .animate-count { animation: countUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .delay-4 { animation-delay: 0.4s; opacity: 0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        
+        // Sample data - in production this comes from the API
+        const SAMPLE_LOANS = [
+            {
+                id: "LOAN-001",
+                propertyName: "123 Main Street Office Building",
+                borrower: "Acme Properties LLC",
+                lender: "First National Bank",
+                loanAmount: 10000000,
+                maturityDate: "2029-01-15",
+                complianceScore: 85,
+                requirements: [
+                    { id: "REQ-001", title: "Quarterly Financial Statements", category: "financial_reporting", status: "compliant", severity: "high", deadline: "45 days after quarter end", dueDate: "2025-02-14", frequency: "quarterly" },
+                    { id: "REQ-002", title: "Annual Audited Financials", category: "financial_reporting", status: "pending", severity: "critical", deadline: "120 days after fiscal year end", dueDate: "2025-04-30", frequency: "annual" },
+                    { id: "REQ-003", title: "DSCR Covenant (≥1.25x)", category: "covenant_compliance", status: "at_risk", severity: "critical", deadline: "Tested quarterly", threshold: { metric: "DSCR", value: 1.25, current: 1.28 }, frequency: "quarterly" },
+                    { id: "REQ-004", title: "Property Insurance", category: "insurance", status: "compliant", severity: "critical", deadline: "30 days before expiration", dueDate: "2025-06-01", frequency: "annual" },
+                    { id: "REQ-005", title: "Replacement Reserve ($2,500/mo)", category: "reserve_funding", status: "compliant", severity: "medium", deadline: "1st of each month", frequency: "monthly" },
+                    { id: "REQ-006", title: "Monthly Rent Roll", category: "financial_reporting", status: "overdue", severity: "medium", deadline: "15th of each month", dueDate: "2025-01-15", frequency: "monthly" },
+                    { id: "REQ-007", title: "Major Lease Approval", category: "leasing", status: "not_applicable", severity: "high", deadline: "Prior to execution", frequency: "as_needed" },
+                    { id: "REQ-008", title: "Annual Operating Budget", category: "financial_reporting", status: "compliant", severity: "medium", deadline: "November 15 annually", dueDate: "2025-11-15", frequency: "annual" },
+                ]
+            },
+            {
+                id: "LOAN-002",
+                propertyName: "Riverside Shopping Center",
+                borrower: "Riverside Retail Holdings",
+                lender: "Commercial Trust Bank",
+                loanAmount: 25000000,
+                maturityDate: "2027-06-30",
+                complianceScore: 92,
+                requirements: [
+                    { id: "REQ-001", title: "Quarterly Financial Statements", category: "financial_reporting", status: "compliant", severity: "high", deadline: "45 days after quarter end", dueDate: "2025-02-14", frequency: "quarterly" },
+                    { id: "REQ-002", title: "Annual Audited Financials", category: "financial_reporting", status: "compliant", severity: "critical", deadline: "120 days after fiscal year end", dueDate: "2025-04-30", frequency: "annual" },
+                    { id: "REQ-003", title: "DSCR Covenant (≥1.35x)", category: "covenant_compliance", status: "compliant", severity: "critical", deadline: "Tested quarterly", threshold: { metric: "DSCR", value: 1.35, current: 1.52 }, frequency: "quarterly" },
+                    { id: "REQ-004", title: "Property Insurance", category: "insurance", status: "compliant", severity: "critical", deadline: "30 days before expiration", dueDate: "2025-08-15", frequency: "annual" },
+                    { id: "REQ-005", title: "Tax Escrow Deposits", category: "reserve_funding", status: "compliant", severity: "high", deadline: "Monthly with payment", frequency: "monthly" },
+                ]
+            },
+            {
+                id: "LOAN-003",
+                propertyName: "Industrial Park West",
+                borrower: "West Industrial LLC",
+                lender: "Metro Capital",
+                loanAmount: 18500000,
+                maturityDate: "2026-12-01",
+                complianceScore: 68,
+                requirements: [
+                    { id: "REQ-001", title: "Quarterly Financial Statements", category: "financial_reporting", status: "overdue", severity: "high", deadline: "45 days after quarter end", dueDate: "2025-01-10", frequency: "quarterly" },
+                    { id: "REQ-002", title: "LTV Covenant (≤75%)", category: "covenant_compliance", status: "non_compliant", severity: "critical", deadline: "Tested annually", threshold: { metric: "LTV", value: 75, current: 78 }, frequency: "annual" },
+                    { id: "REQ-003", title: "Environmental Compliance", category: "environmental", status: "pending", severity: "high", deadline: "Annual certification", dueDate: "2025-03-01", frequency: "annual" },
+                    { id: "REQ-004", title: "Property Insurance", category: "insurance", status: "at_risk", severity: "critical", deadline: "30 days before expiration", dueDate: "2025-01-25", frequency: "annual" },
+                ]
+            }
+        ];
+        
+        // Utility functions
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+        };
+        
+        const formatDate = (dateStr) => {
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+        
+        const getDaysUntil = (dateStr) => {
+            const today = new Date();
+            const target = new Date(dateStr);
+            const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+            return diff;
+        };
+        
+        const getStatusColor = (status) => {
+            switch(status) {
+                case 'compliant': return { bg: 'var(--emerald-50)', border: 'var(--emerald-500)', text: 'var(--emerald-500)' };
+                case 'at_risk': return { bg: 'var(--amber-50)', border: 'var(--amber-500)', text: 'var(--amber-500)' };
+                case 'non_compliant': 
+                case 'overdue': return { bg: 'var(--red-50)', border: 'var(--red-500)', text: 'var(--red-500)' };
+                case 'pending': return { bg: 'var(--blue-100)', border: 'var(--blue-500)', text: 'var(--blue-500)' };
+                default: return { bg: 'var(--slate-100)', border: 'var(--slate-400)', text: 'var(--slate-600)' };
+            }
+        };
+        
+        const getSeverityLabel = (severity) => {
+            switch(severity) {
+                case 'critical': return { label: 'Critical', color: 'var(--red-500)' };
+                case 'high': return { label: 'High', color: 'var(--amber-500)' };
+                case 'medium': return { label: 'Medium', color: 'var(--blue-500)' };
+                default: return { label: 'Low', color: 'var(--slate-500)' };
+            }
+        };
+        
+        // Components
+        const StatusBadge = ({ status }) => {
+            const colors = getStatusColor(status);
+            const label = status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return (
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    background: colors.bg,
+                    color: colors.text,
+                    border: `1px solid ${colors.border}`
+                }}>
+                    <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: colors.text,
+                        marginRight: 6
+                    }} />
+                    {label}
+                </span>
+            );
+        };
+        
+        const ScoreRing = ({ score, size = 80 }) => {
+            const strokeWidth = 8;
+            const radius = (size - strokeWidth) / 2;
+            const circumference = radius * 2 * Math.PI;
+            const offset = circumference - (score / 100) * circumference;
+            
+            const getScoreColor = (score) => {
+                if (score >= 80) return 'var(--emerald-500)';
+                if (score >= 60) return 'var(--amber-500)';
+                return 'var(--red-500)';
+            };
+            
+            return (
+                <div style={{ position: 'relative', width: size, height: size }}>
+                    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+                        <circle
+                            cx={size/2}
+                            cy={size/2}
+                            r={radius}
+                            fill="none"
+                            stroke="var(--slate-200)"
+                            strokeWidth={strokeWidth}
+                        />
+                        <circle
+                            cx={size/2}
+                            cy={size/2}
+                            r={radius}
+                            fill="none"
+                            stroke={getScoreColor(score)}
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={circumference}
+                            strokeDashoffset={offset}
+                            strokeLinecap="round"
+                            style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+                        />
+                    </svg>
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: size * 0.3, fontWeight: 700, fontFamily: 'var(--font-display)', color: getScoreColor(score) }}>{score}</div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const NotificationItem = ({ type, title, message, time, loan }) => {
+            const icons = {
+                overdue: '🔴',
+                warning: '⚠️',
+                upcoming: '📅',
+                success: '✅'
+            };
+            
+            return (
+                <div style={{
+                    display: 'flex',
+                    gap: 12,
+                    padding: '14px 16px',
+                    background: type === 'overdue' ? 'var(--red-50)' : 'white',
+                    borderRadius: 10,
+                    border: `1px solid ${type === 'overdue' ? 'var(--red-100)' : 'var(--slate-200)'}`,
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    cursor: 'pointer'
+                }}
+                onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                }}
+                onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateX(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                }}>
+                    <span style={{ fontSize: 20 }}>{icons[type]}</span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{title}</div>
+                        <div style={{ fontSize: 13, color: 'var(--slate-600)' }}>{message}</div>
+                        <div style={{ fontSize: 12, color: 'var(--slate-400)', marginTop: 4 }}>{loan} • {time}</div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const LoanCard = ({ loan, onClick, isSelected }) => {
+            return (
+                <div 
+                    onClick={onClick}
+                    style={{
+                        background: isSelected ? 'var(--slate-900)' : 'white',
+                        color: isSelected ? 'white' : 'inherit',
+                        borderRadius: 16,
+                        padding: 24,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        border: isSelected ? '2px solid var(--slate-700)' : '1px solid var(--slate-200)',
+                        boxShadow: isSelected ? '0 10px 40px rgba(15,23,42,0.3)' : '0 1px 3px rgba(0,0,0,0.05)'
+                    }}
+                    onMouseOver={(e) => {
+                        if (!isSelected) {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+                        }
+                    }}
+                    onMouseOut={(e) => {
+                        if (!isSelected) {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                        }
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                        <div>
+                            <h3 style={{ 
+                                fontFamily: 'var(--font-display)', 
+                                fontSize: 18, 
+                                fontWeight: 600,
+                                marginBottom: 4
+                            }}>{loan.propertyName}</h3>
+                            <p style={{ 
+                                fontSize: 13, 
+                                color: isSelected ? 'var(--slate-300)' : 'var(--slate-500)'
+                            }}>{loan.borrower}</p>
+                        </div>
+                        <ScoreRing score={loan.complianceScore} size={60} />
+                    </div>
+                    
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: 12,
+                        paddingTop: 16,
+                        borderTop: `1px solid ${isSelected ? 'var(--slate-700)' : 'var(--slate-100)'}` 
+                    }}>
+                        <div>
+                            <div style={{ fontSize: 11, color: isSelected ? 'var(--slate-400)' : 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Loan Amount</div>
+                            <div style={{ fontWeight: 600, fontSize: 15 }}>{formatCurrency(loan.loanAmount)}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 11, color: isSelected ? 'var(--slate-400)' : 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Maturity</div>
+                            <div style={{ fontWeight: 600, fontSize: 15 }}>{formatDate(loan.maturityDate)}</div>
+                        </div>
+                    </div>
+                    
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: 8, 
+                        marginTop: 16,
+                        flexWrap: 'wrap'
+                    }}>
+                        {['overdue', 'non_compliant', 'at_risk'].map(status => {
+                            const count = loan.requirements.filter(r => r.status === status).length;
+                            if (count === 0) return null;
+                            const colors = getStatusColor(status);
+                            return (
+                                <span key={status} style={{
+                                    padding: '3px 10px',
+                                    borderRadius: 12,
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    background: isSelected ? 'rgba(255,255,255,0.1)' : colors.bg,
+                                    color: isSelected ? colors.text : colors.text,
+                                    border: `1px solid ${colors.border}`
+                                }}>
+                                    {count} {status.replace('_', ' ')}
+                                </span>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+        
+        const RequirementRow = ({ requirement, onStatusChange }) => {
+            const colors = getStatusColor(requirement.status);
+            const severity = getSeverityLabel(requirement.severity);
+            
+            return (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 140px 100px 140px 100px',
+                    gap: 16,
+                    alignItems: 'center',
+                    padding: '16px 20px',
+                    background: 'white',
+                    borderRadius: 12,
+                    border: '1px solid var(--slate-200)',
+                    marginBottom: 8,
+                    transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--slate-300)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+                }}
+                onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--slate-200)';
+                    e.currentTarget.style.boxShadow = 'none';
+                }}>
+                    <div>
+                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{requirement.title}</div>
+                        <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>
+                            {requirement.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </div>
+                    </div>
+                    
+                    <div style={{ fontSize: 13, color: 'var(--slate-600)' }}>
+                        {requirement.dueDate ? formatDate(requirement.dueDate) : requirement.deadline}
+                    </div>
+                    
+                    <div>
+                        <span style={{ 
+                            fontSize: 11, 
+                            fontWeight: 600, 
+                            color: severity.color,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5
+                        }}>
+                            {severity.label}
+                        </span>
+                    </div>
+                    
+                    <div>
+                        <StatusBadge status={requirement.status} />
+                    </div>
+                    
+                    <div>
+                        <select 
+                            value={requirement.status}
+                            onChange={(e) => onStatusChange(requirement.id, e.target.value)}
+                            style={{
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                border: '1px solid var(--slate-300)',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                background: 'white'
+                            }}
+                        >
+                            <option value="compliant">Compliant</option>
+                            <option value="pending">Pending</option>
+                            <option value="at_risk">At Risk</option>
+                            <option value="overdue">Overdue</option>
+                            <option value="non_compliant">Non-Compliant</option>
+                        </select>
+                    </div>
+                </div>
+            );
+        };
+        
+        const StatCard = ({ label, value, subtext, trend, icon }) => (
+            <div className="animate-fade delay-1" style={{
+                background: 'white',
+                borderRadius: 16,
+                padding: 24,
+                border: '1px solid var(--slate-200)'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <div style={{ fontSize: 12, color: 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{label}</div>
+                        <div className="animate-count" style={{ fontSize: 36, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--slate-900)' }}>{value}</div>
+                        {subtext && <div style={{ fontSize: 13, color: 'var(--slate-500)', marginTop: 4 }}>{subtext}</div>}
+                    </div>
+                    <div style={{ fontSize: 32 }}>{icon}</div>
+                </div>
+            </div>
+        );
+
+        // Main App
+        const App = () => {
+            const [loans, setLoans] = useState(SAMPLE_LOANS);
+            const [selectedLoan, setSelectedLoan] = useState(null);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [showUpload, setShowUpload] = useState(false);
+            
+            const allRequirements = loans.flatMap(l => l.requirements.map(r => ({ ...r, loanName: l.propertyName })));
+            const overdueCount = allRequirements.filter(r => r.status === 'overdue').length;
+            const atRiskCount = allRequirements.filter(r => r.status === 'at_risk').length;
+            const nonCompliantCount = allRequirements.filter(r => r.status === 'non_compliant').length;
+            
+            const notifications = [
+                ...allRequirements.filter(r => r.status === 'overdue').map(r => ({
+                    type: 'overdue',
+                    title: `${r.title} Overdue`,
+                    message: `Was due ${r.dueDate ? formatDate(r.dueDate) : r.deadline}`,
+                    time: 'Action required',
+                    loan: r.loanName
+                })),
+                ...allRequirements.filter(r => r.status === 'at_risk').slice(0, 2).map(r => ({
+                    type: 'warning',
+                    title: `${r.title} At Risk`,
+                    message: r.threshold ? `Current: ${r.threshold.current}x vs Required: ${r.threshold.value}x` : 'Review needed',
+                    time: 'Monitor closely',
+                    loan: r.loanName
+                })),
+                ...allRequirements.filter(r => r.dueDate && getDaysUntil(r.dueDate) > 0 && getDaysUntil(r.dueDate) <= 30).slice(0, 3).map(r => ({
+                    type: 'upcoming',
+                    title: r.title,
+                    message: `Due in ${getDaysUntil(r.dueDate)} days`,
+                    time: formatDate(r.dueDate),
+                    loan: r.loanName
+                }))
+            ];
+            
+            const handleStatusChange = (reqId, newStatus) => {
+                setLoans(loans.map(loan => ({
+                    ...loan,
+                    requirements: loan.requirements.map(req => 
+                        req.id === reqId ? { ...req, status: newStatus } : req
+                    )
+                })));
+            };
+            
+            return (
+                <div style={{ minHeight: '100vh', background: 'var(--slate-100)' }}>
+                    {/* Header */}
+                    <header style={{
+                        background: 'var(--slate-950)',
+                        color: 'white',
+                        padding: '0 32px',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between',
+                            maxWidth: 1400,
+                            margin: '0 auto',
+                            height: 70
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+                                <h1 style={{ 
+                                    fontFamily: 'var(--font-display)', 
+                                    fontSize: 24, 
+                                    fontWeight: 700,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10
+                                }}>
+                                    <span style={{ 
+                                        background: 'linear-gradient(135deg, var(--emerald-500), var(--blue-500))',
+                                        borderRadius: 8,
+                                        width: 36,
+                                        height: 36,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 20
+                                    }}>🛡️</span>
+                                    LoanGuard
+                                </h1>
+                                
+                                <nav style={{ display: 'flex', gap: 8 }}>
+                                    {['dashboard', 'loans', 'reports'].map(tab => (
+                                        <button 
+                                            key={tab}
+                                            onClick={() => { setActiveTab(tab); setSelectedLoan(null); }}
+                                            style={{
+                                                padding: '8px 16px',
+                                                borderRadius: 8,
+                                                border: 'none',
+                                                background: activeTab === tab ? 'var(--slate-800)' : 'transparent',
+                                                color: activeTab === tab ? 'white' : 'var(--slate-400)',
+                                                cursor: 'pointer',
+                                                fontSize: 14,
+                                                fontWeight: 500,
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                        </button>
+                                    ))}
+                                </nav>
+                            </div>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                <button 
+                                    onClick={() => setShowUpload(true)}
+                                    style={{
+                                        padding: '10px 20px',
+                                        borderRadius: 8,
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, var(--emerald-500), #059669)',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        transition: 'transform 0.2s, box-shadow 0.2s'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(16,185,129,0.4)';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                >
+                                    + Upload Document
+                                </button>
+                                
+                                <div style={{ position: 'relative' }}>
+                                    <button style={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '50%',
+                                        border: 'none',
+                                        background: 'var(--slate-800)',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: 18
+                                    }}>
+                                        🔔
+                                    </button>
+                                    {(overdueCount + atRiskCount) > 0 && (
+                                        <span className="animate-pulse" style={{
+                                            position: 'absolute',
+                                            top: -2,
+                                            right: -2,
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: '50%',
+                                            background: 'var(--red-500)',
+                                            color: 'white',
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {overdueCount + atRiskCount}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+                    
+                    {/* Main Content */}
+                    <main style={{ 
+                        maxWidth: 1400, 
+                        margin: '0 auto', 
+                        padding: '32px'
+                    }}>
+                        {selectedLoan ? (
+                            // Loan Detail View
+                            <div className="animate-fade">
+                                <button 
+                                    onClick={() => setSelectedLoan(null)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        padding: '8px 16px',
+                                        borderRadius: 8,
+                                        border: '1px solid var(--slate-300)',
+                                        background: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: 14,
+                                        marginBottom: 24
+                                    }}
+                                >
+                                    ← Back to Dashboard
+                                </button>
+                                
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+                                    <div>
+                                        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+                                            {selectedLoan.propertyName}
+                                        </h2>
+                                        <p style={{ color: 'var(--slate-600)', fontSize: 16 }}>
+                                            {selectedLoan.borrower} • {selectedLoan.lender}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <button style={{
+                                            padding: '10px 20px',
+                                            borderRadius: 8,
+                                            border: '1px solid var(--slate-300)',
+                                            background: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: 14,
+                                            fontWeight: 500
+                                        }}>
+                                            📊 Export Report
+                                        </button>
+                                        <button style={{
+                                            padding: '10px 20px',
+                                            borderRadius: 8,
+                                            border: 'none',
+                                            background: 'var(--slate-900)',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: 14,
+                                            fontWeight: 500
+                                        }}>
+                                            ✏️ Edit Loan
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+                                    <StatCard label="Compliance Score" value={selectedLoan.complianceScore + '%'} icon="📊" />
+                                    <StatCard label="Total Requirements" value={selectedLoan.requirements.length} icon="📋" />
+                                    <StatCard label="Issues" value={selectedLoan.requirements.filter(r => ['overdue', 'non_compliant', 'at_risk'].includes(r.status)).length} icon="⚠️" />
+                                    <StatCard label="Loan Amount" value={formatCurrency(selectedLoan.loanAmount)} icon="💰" />
+                                </div>
+                                
+                                <div style={{ 
+                                    background: 'var(--slate-50)', 
+                                    borderRadius: 16, 
+                                    padding: 24,
+                                    border: '1px solid var(--slate-200)'
+                                }}>
+                                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, marginBottom: 20 }}>
+                                        Compliance Requirements
+                                    </h3>
+                                    
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 140px 100px 140px 100px',
+                                        gap: 16,
+                                        padding: '0 20px 12px',
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        color: 'var(--slate-500)',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.5
+                                    }}>
+                                        <div>Requirement</div>
+                                        <div>Deadline</div>
+                                        <div>Severity</div>
+                                        <div>Status</div>
+                                        <div>Update</div>
+                                    </div>
+                                    
+                                    {selectedLoan.requirements.map((req, i) => (
+                                        <div key={req.id} className="animate-slide" style={{ animationDelay: `${i * 0.05}s` }}>
+                                            <RequirementRow 
+                                                requirement={req} 
+                                                onStatusChange={handleStatusChange}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            // Dashboard View
+                            <>
+                                <div style={{ marginBottom: 32 }}>
+                                    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
+                                        Good morning, Daniel 👋
+                                    </h2>
+                                    <p style={{ color: 'var(--slate-600)' }}>
+                                        Here's your compliance overview for {loans.length} active loans.
+                                    </p>
+                                </div>
+                                
+                                {/* Stats */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+                                    <StatCard label="Active Loans" value={loans.length} subtext={`${formatCurrency(loans.reduce((sum, l) => sum + l.loanAmount, 0))} total`} icon="🏢" />
+                                    <StatCard label="Overdue Items" value={overdueCount} subtext={overdueCount > 0 ? "Requires immediate attention" : "All caught up!"} icon="🔴" />
+                                    <StatCard label="At Risk" value={atRiskCount + nonCompliantCount} subtext="Needs review" icon="⚠️" />
+                                    <StatCard label="Avg. Score" value={Math.round(loans.reduce((sum, l) => sum + l.complianceScore, 0) / loans.length) + '%'} icon="📈" />
+                                </div>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+                                    {/* Loans Grid */}
+                                    <div>
+                                        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, marginBottom: 16 }}>Your Loans</h3>
+                                        <div style={{ display: 'grid', gap: 16 }}>
+                                            {loans.map((loan, i) => (
+                                                <div key={loan.id} className="animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
+                                                    <LoanCard 
+                                                        loan={loan} 
+                                                        onClick={() => setSelectedLoan(loan)}
+                                                        isSelected={false}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Notifications Panel */}
+                                    <div>
+                                        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, marginBottom: 16 }}>
+                                            Notifications
+                                            {notifications.length > 0 && (
+                                                <span style={{
+                                                    marginLeft: 8,
+                                                    padding: '2px 8px',
+                                                    borderRadius: 10,
+                                                    background: 'var(--red-100)',
+                                                    color: 'var(--red-500)',
+                                                    fontSize: 12,
+                                                    fontWeight: 600
+                                                }}>{notifications.length}</span>
+                                            )}
+                                        </h3>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {notifications.slice(0, 6).map((notif, i) => (
+                                                <div key={i} className="animate-slide" style={{ animationDelay: `${i * 0.1}s` }}>
+                                                    <NotificationItem {...notif} />
+                                                </div>
+                                            ))}
+                                            {notifications.length === 0 && (
+                                                <div style={{
+                                                    padding: 32,
+                                                    textAlign: 'center',
+                                                    color: 'var(--slate-500)',
+                                                    background: 'white',
+                                                    borderRadius: 12,
+                                                    border: '1px solid var(--slate-200)'
+                                                }}>
+                                                    ✨ All caught up! No pending notifications.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </main>
+                    
+                    {/* Upload Modal */}
+                    {showUpload && (
+                        <div style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(15,23,42,0.7)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1000
+                        }} onClick={() => setShowUpload(false)}>
+                            <div 
+                                className="animate-fade"
+                                style={{
+                                    background: 'white',
+                                    borderRadius: 20,
+                                    padding: 32,
+                                    width: '100%',
+                                    maxWidth: 500,
+                                    boxShadow: '0 25px 50px rgba(0,0,0,0.3)'
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, marginBottom: 8 }}>
+                                    Upload Loan Document
+                                </h2>
+                                <p style={{ color: 'var(--slate-600)', marginBottom: 24 }}>
+                                    Upload a loan agreement PDF to extract compliance requirements automatically.
+                                </p>
+                                
+                                <div style={{
+                                    border: '2px dashed var(--slate-300)',
+                                    borderRadius: 12,
+                                    padding: 48,
+                                    textAlign: 'center',
+                                    marginBottom: 24,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--emerald-500)';
+                                    e.currentTarget.style.background = 'var(--emerald-50)';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--slate-300)';
+                                    e.currentTarget.style.background = 'transparent';
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+                                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Drop your PDF here</div>
+                                    <div style={{ fontSize: 14, color: 'var(--slate-500)' }}>or click to browse</div>
+                                </div>
+                                
+                                <div style={{ display: 'flex', gap: 12 }}>
+                                    <button 
+                                        onClick={() => setShowUpload(false)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px 20px',
+                                            borderRadius: 8,
+                                            border: '1px solid var(--slate-300)',
+                                            background: 'white',
+                                            cursor: 'pointer',
+                                            fontSize: 14,
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button style={{
+                                        flex: 1,
+                                        padding: '12px 20px',
+                                        borderRadius: 8,
+                                        border: 'none',
+                                        background: 'var(--slate-900)',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: 14,
+                                        fontWeight: 600
+                                    }}>
+                                        Analyze Document
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

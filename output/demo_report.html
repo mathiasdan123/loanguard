@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Compliance Report - 123 Main Street Office Building</title>
+    <style>
+        :root {
+            --critical: #dc2626;
+            --high: #ea580c;
+            --medium: #ca8a04;
+            --low: #16a34a;
+            --compliant: #16a34a;
+            --non-compliant: #dc2626;
+            --at-risk: #ea580c;
+            --pending: #6b7280;
+            --unknown: #9ca3af;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f9fafb;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .loan-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .loan-info dt {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .loan-info dd {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .card-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .card.critical .card-value { color: var(--critical); }
+        .card.at-risk .card-value { color: var(--at-risk); }
+        
+        .requirement {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #e5e7eb;
+        }
+        
+        .requirement.critical { border-left-color: var(--critical); }
+        .requirement.high { border-left-color: var(--high); }
+        .requirement.medium { border-left-color: var(--medium); }
+        .requirement.low { border-left-color: var(--low); }
+        
+        .requirement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .requirement-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge.critical { background: #fef2f2; color: var(--critical); }
+        .badge.high { background: #fff7ed; color: var(--high); }
+        .badge.medium { background: #fefce8; color: var(--medium); }
+        .badge.low { background: #f0fdf4; color: var(--low); }
+        
+        .plain-language {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+        
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .threshold {
+            background: #eff6ff;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-weight: 500;
+            color: #1e40af;
+        }
+        
+        .original-text {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .original-text summary {
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .original-text pre {
+            margin-top: 0.5rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        @media print {
+            body { background: white; padding: 1rem; }
+            .card, .requirement { box-shadow: none; border: 1px solid #e5e7eb; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Loan Compliance Report</h1>
+        <dl class="loan-info">
+            <div>
+                <dt>Property</dt>
+                <dd>123 Main Street Office Building</dd>
+            </div>
+            <div>
+                <dt>Borrower</dt>
+                <dd>Sample Borrower LLC</dd>
+            </div>
+            <div>
+                <dt>Lender</dt>
+                <dd>Sample Bank, N.A.</dd>
+            </div>
+            <div>
+                <dt>Loan Amount</dt>
+                <dd>$10,000,000.00</dd>
+            </div>
+            <div>
+                <dt>Maturity Date</dt>
+                <dd>2029-01-15</dd>
+            </div>
+            <div>
+                <dt>Report Date</dt>
+                <dd>January 18, 2026</dd>
+            </div>
+        </dl>
+    </div>
+    
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-value">8</div>
+            <div class="card-label">Total Requirements</div>
+        </div>
+        <div class="card critical">
+            <div class="card-value">3</div>
+            <div class="card-label">Critical Items</div>
+        </div>
+        <div class="card at-risk">
+            <div class="card-value">0</div>
+            <div class="card-label">Non-Compliant</div>
+        </div>
+        <div class="card">
+            <div class="card-value">0</div>
+            <div class="card-label">At Risk</div>
+        </div>
+    </div>
+
+    <h2>Financial Reporting</h2>
+
+    <div class="requirement high">
+        <div class="requirement-header">
+            <div class="requirement-title">Quarterly Financial Statements</div>
+            <span class="badge high">high</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Send your quarterly financial statements to the lender within 45 days after each quarter ends
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>45 days after quarter end (quarterly)</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 5.1.1</span>
+            </div>
+        </div>
+        
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Borrower shall deliver to Lender within forty-five (45) days after the end of each fiscal quarter...</pre>
+        </details>
+    </div>
+
+    <div class="requirement critical">
+        <div class="requirement-header">
+            <div class="requirement-title">Annual Audited Financials</div>
+            <span class="badge critical">critical</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Have a CPA audit your financials and send the report within 120 days after year end
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>120 days after fiscal year end (annual)</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 5.1.2</span>
+            </div>
+        </div>
+        
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Borrower shall deliver to Lender within one hundred twenty (120) days after the end of each fiscal year, audited financial statements...</pre>
+        </details>
+    </div>
+
+    <div class="requirement medium">
+        <div class="requirement-header">
+            <div class="requirement-title">Monthly Rent Roll</div>
+            <span class="badge medium">medium</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Send a current rent roll showing all tenants, lease terms, and rental rates by the 15th of each month
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>By the 15th of each month (monthly)</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 5.1.4</span>
+            </div>
+        </div>
+        
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Borrower shall deliver to Lender by the fifteenth (15th) day of each calendar month a current rent roll...</pre>
+        </details>
+    </div>
+
+    <div class="requirement medium">
+        <div class="requirement-header">
+            <div class="requirement-title">Annual Operating Budget</div>
+            <span class="badge medium">medium</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Submit next year's operating budget for lender approval by November 15th each year
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>November 15 annually (annual)</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 5.1.5</span>
+            </div>
+        </div>
+        
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Not later than November 15 of each year, Borrower shall submit to Lender for approval the proposed annual operating budget...</pre>
+        </details>
+    </div>
+
+    <h2>Covenant Compliance</h2>
+
+    <div class="requirement critical">
+        <div class="requirement-header">
+            <div class="requirement-title">DSCR Covenant</div>
+            <span class="badge critical">critical</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Your property's net operating income divided by your loan payments must be at least 1.25x
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>Tested quarterly (quarterly)</span>
+            </div>
+            <div class="meta-item">
+                <span>🔧</span>
+                <span>Cure Period: 30 days</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 6.2</span>
+            </div>
+        </div>
+        
+        <div class="threshold">
+            📊 DSCR must be at least 1.25x
+        </div>
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Borrower shall maintain a Debt Service Coverage Ratio of not less than 1.25:1.00...</pre>
+        </details>
+    </div>
+
+    <h2>Insurance</h2>
+
+    <div class="requirement critical">
+        <div class="requirement-header">
+            <div class="requirement-title">Property Insurance</div>
+            <span class="badge critical">critical</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Keep your property insured for full replacement cost. Send proof to lender before each renewal.
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>30 days before policy expiration (annual)</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 4.1</span>
+            </div>
+        </div>
+        
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Borrower shall maintain property insurance in an amount not less than the full replacement cost...</pre>
+        </details>
+    </div>
+
+    <h2>Reserve Funding</h2>
+
+    <div class="requirement medium">
+        <div class="requirement-header">
+            <div class="requirement-title">Replacement Reserve Deposits</div>
+            <span class="badge medium">medium</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Deposit $2,500 monthly into your replacement reserve account
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>Monthly with mortgage payment (monthly)</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 7.3</span>
+            </div>
+        </div>
+        
+        <div class="threshold">
+            📊 Monthly Deposit must be at least 2500$
+        </div>
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Borrower shall deposit with Lender on each Payment Date the sum of $2,500...</pre>
+        </details>
+    </div>
+
+    <h2>Leasing</h2>
+
+    <div class="requirement high">
+        <div class="requirement-header">
+            <div class="requirement-title">Major Lease Approval</div>
+            <span class="badge high">high</span>
+        </div>
+        
+        <div class="plain-language">
+            💡 Get lender approval before signing any lease over 10,000 SF or with a tenant getting more than 3 months free rent
+        </div>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span>⏰</span>
+                <span>Prior to lease execution (as needed)</span>
+            </div>
+            <div class="meta-item">
+                <span>📄</span>
+                <span>Section 8.2</span>
+            </div>
+        </div>
+        
+        
+        <details class="original-text">
+            <summary>View original document text</summary>
+            <pre>Borrower shall not enter into any lease for more than 10,000 square feet or containing concessions in excess of three (3) months free rent without Lender's prior written consent...</pre>
+        </details>
+    </div>
+
+</body>
+</html>
