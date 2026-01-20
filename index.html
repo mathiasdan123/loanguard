@@ -90,6 +90,15 @@
         .delay-1 { animation-delay: 0.1s; opacity: 0; }
         .delay-2 { animation-delay: 0.2s; opacity: 0; }
         .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -114,10 +123,8 @@
             const [token, setToken] = useState(null);
             
             useEffect(() => {
-                // Wait for Clerk to load
                 const initClerk = async () => {
                     try {
-                        // Check if Clerk is available
                         if (window.Clerk) {
                             await window.Clerk.load();
                             
@@ -128,20 +135,12 @@
                                     name: window.Clerk.user.fullName || window.Clerk.user.firstName,
                                     imageUrl: window.Clerk.user.imageUrl
                                 });
-                                
-                                // Get token for API calls
                                 const sessionToken = await window.Clerk.session?.getToken();
                                 setToken(sessionToken);
                             }
                         } else {
-                            // Development mode - mock user
                             console.log('Clerk not loaded - using development mode');
-                            setUser({
-                                id: 'dev_user',
-                                email: 'dev@example.com',
-                                name: 'Development User',
-                                imageUrl: null
-                            });
+                            setUser({ id: 'dev_user', email: 'dev@example.com', name: 'Development User', imageUrl: null });
                             setToken('dev_token');
                         }
                     } catch (error) {
@@ -150,24 +149,11 @@
                         setLoading(false);
                     }
                 };
-                
-                // Give Clerk script time to load
                 setTimeout(initClerk, 500);
             }, []);
             
-            const signIn = () => {
-                if (window.Clerk) {
-                    window.Clerk.openSignIn();
-                }
-            };
-            
-            const signOut = () => {
-                if (window.Clerk) {
-                    window.Clerk.signOut();
-                    setUser(null);
-                    setToken(null);
-                }
-            };
+            const signIn = () => { if (window.Clerk) window.Clerk.openSignIn(); };
+            const signOut = () => { if (window.Clerk) { window.Clerk.signOut(); setUser(null); setToken(null); } };
             
             return (
                 <AuthContext.Provider value={{ user, token, loading, signIn, signOut }}>
@@ -191,10 +177,7 @@
                     ...options.headers
                 };
                 
-                const response = await fetch(`${API_URL}${endpoint}`, {
-                    ...options,
-                    headers
-                });
+                const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
                 
                 if (!response.ok) {
                     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
@@ -210,22 +193,8 @@
         // ======================
         // Utility Functions
         // ======================
-        const formatCurrency = (amount) => {
-            return new Intl.NumberFormat('en-US', { 
-                style: 'currency', 
-                currency: 'USD', 
-                maximumFractionDigits: 0 
-            }).format(amount);
-        };
-        
-        const formatDate = (dateStr) => {
-            if (!dateStr) return 'N/A';
-            return new Date(dateStr).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
-            });
-        };
+        const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+        const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
         
         const getStatusColor = (status) => {
             const colors = {
@@ -244,60 +213,17 @@
         
         const LoadingSpinner = () => (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div className="animate-spin" style={{
-                    width: 40,
-                    height: 40,
-                    border: '4px solid var(--slate-200)',
-                    borderTopColor: 'var(--emerald-500)',
-                    borderRadius: '50%'
-                }} />
+                <div className="animate-spin" style={{ width: 40, height: 40, border: '4px solid var(--slate-200)', borderTopColor: 'var(--emerald-500)', borderRadius: '50%' }} />
             </div>
         );
         
         const SignInScreen = ({ onSignIn }) => (
-            <div style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'linear-gradient(135deg, var(--slate-950), var(--slate-800))'
-            }}>
-                <div className="animate-fade" style={{
-                    background: 'white',
-                    borderRadius: 24,
-                    padding: 48,
-                    textAlign: 'center',
-                    maxWidth: 400,
-                    boxShadow: '0 25px 50px rgba(0,0,0,0.3)'
-                }}>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--slate-950), var(--slate-800))' }}>
+                <div className="animate-fade" style={{ background: 'white', borderRadius: 24, padding: 48, textAlign: 'center', maxWidth: 400, boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
                     <div style={{ fontSize: 64, marginBottom: 24 }}>🛡️</div>
                     <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, marginBottom: 8 }}>LoanGuard</h1>
-                    <p style={{ color: 'var(--slate-600)', marginBottom: 32 }}>
-                        Your loan compliance co-pilot
-                    </p>
-                    <button 
-                        onClick={onSignIn}
-                        style={{
-                            width: '100%',
-                            padding: '14px 24px',
-                            borderRadius: 12,
-                            border: 'none',
-                            background: 'linear-gradient(135deg, var(--emerald-500), #059669)',
-                            color: 'white',
-                            fontSize: 16,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s, box-shadow 0.2s'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(16,185,129,0.4)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                    >
+                    <p style={{ color: 'var(--slate-600)', marginBottom: 32 }}>Your loan compliance co-pilot</p>
+                    <button onClick={onSignIn} style={{ width: '100%', padding: '14px 24px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, var(--emerald-500), #059669)', color: 'white', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
                         Sign In to Continue
                     </button>
                 </div>
@@ -308,23 +234,8 @@
             const colors = getStatusColor(status);
             const label = (status || 'unknown').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
             return (
-                <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '4px 12px',
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    background: colors.bg,
-                    color: colors.text,
-                    border: `1px solid ${colors.border}`
-                }}>
-                    <span style={{
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: colors.text, marginRight: 6
-                    }} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: colors.text, marginRight: 6 }} />
                     {label}
                 </span>
             );
@@ -341,14 +252,9 @@
                 <div style={{ position: 'relative', width: size, height: size }}>
                     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
                         <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="var(--slate-200)" strokeWidth={strokeWidth} />
-                        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={getColor(score)} strokeWidth={strokeWidth}
-                            strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-                            style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+                        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={getColor(score)} strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
                     </svg>
-                    <div style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)', textAlign: 'center'
-                    }}>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
                         <div style={{ fontSize: size * 0.3, fontWeight: 700, fontFamily: 'var(--font-display)', color: getColor(score) }}>{score}</div>
                     </div>
                 </div>
@@ -356,9 +262,7 @@
         };
         
         const StatCard = ({ label, value, subtext, icon }) => (
-            <div className="animate-fade delay-1" style={{
-                background: 'white', borderRadius: 16, padding: 24, border: '1px solid var(--slate-200)'
-            }}>
+            <div className="animate-fade delay-1" style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid var(--slate-200)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ fontSize: 12, color: 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{label}</div>
@@ -371,19 +275,9 @@
         );
         
         const LoanCard = ({ loan, onClick }) => (
-            <div onClick={onClick} style={{
-                background: 'white', borderRadius: 16, padding: 24, cursor: 'pointer',
-                transition: 'all 0.3s ease', border: '1px solid var(--slate-200)',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}
-            onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
-            }}
-            onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-            }}>
+            <div onClick={onClick} style={{ background: 'white', borderRadius: 16, padding: 24, cursor: 'pointer', transition: 'all 0.3s ease', border: '1px solid var(--slate-200)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)'; }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
                         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, marginBottom: 4 }}>{loan.property_name}</h3>
@@ -403,10 +297,7 @@
                 </div>
                 {loan.issues_count > 0 && (
                     <div style={{ marginTop: 12 }}>
-                        <span style={{
-                            padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
-                            background: 'var(--red-50)', color: 'var(--red-500)', border: '1px solid var(--red-500)'
-                        }}>
+                        <span style={{ padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: 'var(--red-50)', color: 'var(--red-500)', border: '1px solid var(--red-500)' }}>
                             {loan.issues_count} issue{loan.issues_count > 1 ? 's' : ''}
                         </span>
                     </div>
@@ -415,30 +306,19 @@
         );
         
         const RequirementRow = ({ requirement, onStatusChange }) => (
-            <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 140px 100px 140px 100px',
-                gap: 16, alignItems: 'center', padding: '16px 20px',
-                background: 'white', borderRadius: 12, border: '1px solid var(--slate-200)', marginBottom: 8
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 100px 140px 100px', gap: 16, alignItems: 'center', padding: '16px 20px', background: 'white', borderRadius: 12, border: '1px solid var(--slate-200)', marginBottom: 8 }}>
                 <div>
                     <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{requirement.title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>
-                        {(requirement.category || '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>{(requirement.category || '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--slate-600)' }}>
-                    {requirement.next_due_date ? formatDate(requirement.next_due_date) : requirement.deadline_description || '—'}
-                </div>
+                <div style={{ fontSize: 13, color: 'var(--slate-600)' }}>{requirement.next_due_date ? formatDate(requirement.next_due_date) : requirement.deadline_description || '—'}</div>
                 <div>
-                    <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5,
-                        color: requirement.severity === 'critical' ? 'var(--red-500)' : requirement.severity === 'high' ? 'var(--amber-500)' : 'var(--blue-500)'
-                    }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: requirement.severity === 'critical' ? 'var(--red-500)' : requirement.severity === 'high' ? 'var(--amber-500)' : 'var(--blue-500)' }}>
                         {requirement.severity}
                     </span>
                 </div>
                 <StatusBadge status={requirement.status} />
-                <select value={requirement.status} onChange={(e) => onStatusChange(requirement.requirement_id, e.target.value)}
-                    style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--slate-300)', fontSize: 12, cursor: 'pointer' }}>
+                <select value={requirement.status} onChange={(e) => onStatusChange(requirement.requirement_id, e.target.value)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--slate-300)', fontSize: 12, cursor: 'pointer' }}>
                     <option value="compliant">Compliant</option>
                     <option value="pending">Pending</option>
                     <option value="at_risk">At Risk</option>
@@ -446,6 +326,170 @@
                 </select>
             </div>
         );
+        
+        // ======================
+        // Covenant Calculator Component
+        // ======================
+        const CovenantCalculator = ({ loan, onClose }) => {
+            const [noi, setNoi] = useState(loan?.noi || 500000);
+            const [debtService, setDebtService] = useState(loan?.debt_service || 400000);
+            const [propertyValue, setPropertyValue] = useState(loan?.property_value || 10000000);
+            const [loanBalance, setLoanBalance] = useState(loan?.original_loan_amount || 6500000);
+            const [occupancy, setOccupancy] = useState(loan?.occupancy || 92);
+            
+            // Covenant thresholds (these would come from the loan doc in production)
+            const covenants = {
+                dscr: { required: 1.25, label: 'Debt Service Coverage Ratio', unit: 'x' },
+                ltv: { required: 75, label: 'Loan-to-Value', unit: '%', inverse: true },
+                occupancy: { required: 85, label: 'Occupancy Rate', unit: '%' }
+            };
+            
+            // Calculate current values
+            const currentDSCR = debtService > 0 ? noi / debtService : 0;
+            const currentLTV = propertyValue > 0 ? (loanBalance / propertyValue) * 100 : 0;
+            const currentOccupancy = occupancy;
+            
+            // Check compliance
+            const dscrCompliant = currentDSCR >= covenants.dscr.required;
+            const ltvCompliant = currentLTV <= covenants.ltv.required;
+            const occupancyCompliant = currentOccupancy >= covenants.occupancy.required;
+            
+            // Calculate cushion/breach amount
+            const dscrCushion = ((currentDSCR - covenants.dscr.required) / covenants.dscr.required * 100).toFixed(1);
+            const ltvCushion = ((covenants.ltv.required - currentLTV) / covenants.ltv.required * 100).toFixed(1);
+            const occupancyCushion = ((currentOccupancy - covenants.occupancy.required) / covenants.occupancy.required * 100).toFixed(1);
+            
+            // What-if calculations
+            const noiToBreachDSCR = covenants.dscr.required * debtService;
+            const noiDropAllowed = noi - noiToBreachDSCR;
+            const noiDropPercent = (noiDropAllowed / noi * 100).toFixed(1);
+            
+            const CovenantCard = ({ name, current, required, unit, compliant, cushion, inverse }) => (
+                <div style={{ background: compliant ? 'var(--emerald-50)' : 'var(--red-50)', borderRadius: 12, padding: 20, border: `1px solid ${compliant ? 'var(--emerald-500)' : 'var(--red-500)'}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div>
+                            <div style={{ fontSize: 12, color: 'var(--slate-600)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{name}</div>
+                            <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-display)', color: compliant ? 'var(--emerald-500)' : 'var(--red-500)' }}>
+                                {typeof current === 'number' ? current.toFixed(2) : current}{unit}
+                            </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Required</div>
+                            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--slate-700)' }}>{inverse ? '≤' : '≥'} {required}{unit}</div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 20 }}>{compliant ? '✓' : '⚠️'}</span>
+                        <span style={{ fontSize: 13, color: compliant ? 'var(--emerald-600)' : 'var(--red-600)', fontWeight: 500 }}>
+                            {compliant ? `${Math.abs(cushion)}% cushion` : `${Math.abs(cushion)}% below requirement`}
+                        </span>
+                    </div>
+                </div>
+            );
+            
+            const InputField = ({ label, value, onChange, prefix, suffix }) => (
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12, color: 'var(--slate-600)', marginBottom: 6, fontWeight: 500 }}>{label}</label>
+                    <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--slate-300)', borderRadius: 8, overflow: 'hidden' }}>
+                        {prefix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{prefix}</span>}
+                        <input type="number" value={value} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} style={{ flex: 1, padding: '10px 12px', border: 'none', outline: 'none', fontSize: 14, width: '100%' }} />
+                        {suffix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{suffix}</span>}
+                    </div>
+                </div>
+            );
+            
+            return (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                    <div className="animate-fade" style={{ background: 'var(--slate-50)', borderRadius: 20, width: '100%', maxWidth: 900, maxHeight: '90vh', overflow: 'auto' }}>
+                        {/* Header */}
+                        <div style={{ background: 'var(--slate-950)', color: 'white', padding: '24px 32px', borderRadius: '20px 20px 0 0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, marginBottom: 4 }}>🧮 Covenant Calculator</h2>
+                                    <p style={{ color: 'var(--slate-400)', fontSize: 14 }}>Test scenarios and check covenant compliance</p>
+                                </div>
+                                <button onClick={onClose} style={{ background: 'var(--slate-800)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: 8, cursor: 'pointer', fontSize: 18 }}>×</button>
+                            </div>
+                        </div>
+                        
+                        <div style={{ padding: 32 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 32 }}>
+                                {/* Inputs */}
+                                <div>
+                                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, marginBottom: 20, color: 'var(--slate-700)' }}>Current Financials</h3>
+                                    <InputField label="Net Operating Income (Annual)" value={noi} onChange={setNoi} prefix="$" />
+                                    <InputField label="Annual Debt Service" value={debtService} onChange={setDebtService} prefix="$" />
+                                    <InputField label="Property Value" value={propertyValue} onChange={setPropertyValue} prefix="$" />
+                                    <InputField label="Current Loan Balance" value={loanBalance} onChange={setLoanBalance} prefix="$" />
+                                    <InputField label="Occupancy Rate" value={occupancy} onChange={setOccupancy} suffix="%" />
+                                </div>
+                                
+                                {/* Results */}
+                                <div>
+                                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, marginBottom: 20, color: 'var(--slate-700)' }}>Covenant Status</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <CovenantCard name="DSCR" current={currentDSCR} required={covenants.dscr.required} unit="x" compliant={dscrCompliant} cushion={dscrCushion} />
+                                        <CovenantCard name="Loan-to-Value" current={currentLTV} required={covenants.ltv.required} unit="%" compliant={ltvCompliant} cushion={ltvCushion} inverse={true} />
+                                        <CovenantCard name="Occupancy" current={currentOccupancy} required={covenants.occupancy.required} unit="%" compliant={occupancyCompliant} cushion={occupancyCushion} />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* What-If Analysis */}
+                            <div style={{ marginTop: 32, background: 'white', borderRadius: 16, padding: 24, border: '1px solid var(--slate-200)' }}>
+                                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, marginBottom: 16, color: 'var(--slate-700)' }}>📊 What-If Analysis</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                                    <div style={{ background: 'var(--slate-50)', borderRadius: 12, padding: 16 }}>
+                                        <div style={{ fontSize: 12, color: 'var(--slate-500)', marginBottom: 4 }}>NOI can drop by</div>
+                                        <div style={{ fontSize: 24, fontWeight: 700, color: noiDropAllowed > 0 ? 'var(--emerald-500)' : 'var(--red-500)' }}>
+                                            {noiDropAllowed > 0 ? formatCurrency(noiDropAllowed) : 'Already breaching'}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: 'var(--slate-600)', marginTop: 4 }}>
+                                            {noiDropAllowed > 0 ? `(${noiDropPercent}%) before DSCR breach` : 'Need to increase NOI'}
+                                        </div>
+                                    </div>
+                                    <div style={{ background: 'var(--slate-50)', borderRadius: 12, padding: 16 }}>
+                                        <div style={{ fontSize: 12, color: 'var(--slate-500)', marginBottom: 4 }}>Property value floor</div>
+                                        <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--blue-500)' }}>
+                                            {formatCurrency(loanBalance / (covenants.ltv.required / 100))}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: 'var(--slate-600)', marginTop: 4 }}>
+                                            Before LTV covenant breach
+                                        </div>
+                                    </div>
+                                    <div style={{ background: 'var(--slate-50)', borderRadius: 12, padding: 16 }}>
+                                        <div style={{ fontSize: 12, color: 'var(--slate-500)', marginBottom: 4 }}>Vacancy buffer</div>
+                                        <div style={{ fontSize: 24, fontWeight: 700, color: occupancy - covenants.occupancy.required > 5 ? 'var(--emerald-500)' : 'var(--amber-500)' }}>
+                                            {(occupancy - covenants.occupancy.required).toFixed(0)}%
+                                        </div>
+                                        <div style={{ fontSize: 13, color: 'var(--slate-600)', marginTop: 4 }}>
+                                            Additional vacancy allowed
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Overall Status */}
+                            <div style={{ marginTop: 24, padding: 20, borderRadius: 12, background: dscrCompliant && ltvCompliant && occupancyCompliant ? 'var(--emerald-100)' : 'var(--amber-100)', border: `1px solid ${dscrCompliant && ltvCompliant && occupancyCompliant ? 'var(--emerald-500)' : 'var(--amber-500)'}` }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <span style={{ fontSize: 32 }}>{dscrCompliant && ltvCompliant && occupancyCompliant ? '✅' : '⚠️'}</span>
+                                    <div>
+                                        <div style={{ fontSize: 16, fontWeight: 600, color: dscrCompliant && ltvCompliant && occupancyCompliant ? 'var(--emerald-700)' : 'var(--amber-700)' }}>
+                                            {dscrCompliant && ltvCompliant && occupancyCompliant ? 'All Covenants Passing' : 'Covenant Warning'}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: dscrCompliant && ltvCompliant && occupancyCompliant ? 'var(--emerald-600)' : 'var(--amber-600)' }}>
+                                            {dscrCompliant && ltvCompliant && occupancyCompliant 
+                                                ? 'Your loan is in good standing based on current financials' 
+                                                : `${[!dscrCompliant && 'DSCR', !ltvCompliant && 'LTV', !occupancyCompliant && 'Occupancy'].filter(Boolean).join(', ')} needs attention`}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
         
         // ======================
         // Main Dashboard
@@ -459,8 +503,8 @@
             const [dashboardData, setDashboardData] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
+            const [showCalculator, setShowCalculator] = useState(false);
             
-            // Load dashboard data
             useEffect(() => {
                 const loadData = async () => {
                     try {
@@ -479,37 +523,23 @@
                 loadData();
             }, [fetchAPI]);
             
-            // Load loan detail
             useEffect(() => {
-                if (!selectedLoan) {
-                    setLoanDetail(null);
-                    return;
-                }
-                
+                if (!selectedLoan) { setLoanDetail(null); return; }
                 const loadLoan = async () => {
                     try {
                         const data = await fetchAPI(`/api/loans/${selectedLoan}`);
                         setLoanDetail(data);
-                    } catch (err) {
-                        setError(err.message);
-                    }
+                    } catch (err) { setError(err.message); }
                 };
                 loadLoan();
             }, [selectedLoan, fetchAPI]);
             
             const handleStatusChange = async (requirementId, newStatus) => {
                 try {
-                    await fetchAPI(`/api/loans/${selectedLoan}/requirements/${requirementId}/status`, {
-                        method: 'PUT',
-                        body: JSON.stringify({ status: newStatus })
-                    });
-                    
-                    // Refresh loan detail
+                    await fetchAPI(`/api/loans/${selectedLoan}/requirements/${requirementId}/status`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
                     const data = await fetchAPI(`/api/loans/${selectedLoan}`);
                     setLoanDetail(data);
-                } catch (err) {
-                    alert('Failed to update status: ' + err.message);
-                }
+                } catch (err) { alert('Failed to update status: ' + err.message); }
             };
             
             const createDemoLoan = async () => {
@@ -517,9 +547,7 @@
                     await fetchAPI('/api/loans/demo', { method: 'POST' });
                     const loansRes = await fetchAPI('/api/loans');
                     setLoans(loansRes.loans || []);
-                } catch (err) {
-                    alert('Failed to create demo: ' + err.message);
-                }
+                } catch (err) { alert('Failed to create demo: ' + err.message); }
             };
             
             if (loading) return <LoadingSpinner />;
@@ -534,16 +562,19 @@
                                 LoanGuard
                             </h1>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                <button onClick={() => setShowCalculator(true)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--emerald-500)', color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    🧮 Covenant Calculator
+                                </button>
                                 <span style={{ fontSize: 14, color: 'var(--slate-400)' }}>{user?.name || user?.email}</span>
-                                <button onClick={signOut} style={{
-                                    padding: '8px 16px', borderRadius: 8, border: '1px solid var(--slate-600)',
-                                    background: 'transparent', color: 'var(--slate-300)', cursor: 'pointer', fontSize: 13
-                                }}>
+                                <button onClick={signOut} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--slate-600)', background: 'transparent', color: 'var(--slate-300)', cursor: 'pointer', fontSize: 13 }}>
                                     Sign Out
                                 </button>
                             </div>
                         </div>
                     </header>
+                    
+                    {/* Calculator Modal */}
+                    {showCalculator && <CovenantCalculator loan={loanDetail} onClose={() => setShowCalculator(false)} />}
                     
                     {/* Main Content */}
                     <main style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
@@ -554,14 +585,15 @@
                         )}
                         
                         {loanDetail ? (
-                            /* Loan Detail View */
                             <div className="animate-fade">
-                                <button onClick={() => setSelectedLoan(null)} style={{
-                                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
-                                    borderRadius: 8, border: '1px solid var(--slate-300)', background: 'white', cursor: 'pointer', fontSize: 14, marginBottom: 24
-                                }}>
-                                    ← Back
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                                    <button onClick={() => setSelectedLoan(null)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 8, border: '1px solid var(--slate-300)', background: 'white', cursor: 'pointer', fontSize: 14 }}>
+                                        ← Back
+                                    </button>
+                                    <button onClick={() => setShowCalculator(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--slate-900)', color: 'white', cursor: 'pointer', fontSize: 14 }}>
+                                        🧮 Test Covenants
+                                    </button>
+                                </div>
                                 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
                                     <div>
@@ -584,7 +616,6 @@
                                 </div>
                             </div>
                         ) : (
-                            /* Dashboard View */
                             <>
                                 <div style={{ marginBottom: 32 }}>
                                     <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
@@ -609,10 +640,7 @@
                                         <div style={{ fontSize: 64, marginBottom: 16 }}>📄</div>
                                         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, marginBottom: 8 }}>No loans yet</h3>
                                         <p style={{ color: 'var(--slate-600)', marginBottom: 24 }}>Upload a loan document or create a demo to get started.</p>
-                                        <button onClick={createDemoLoan} style={{
-                                            padding: '12px 24px', borderRadius: 8, border: 'none',
-                                            background: 'var(--slate-900)', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600
-                                        }}>
+                                        <button onClick={createDemoLoan} style={{ padding: '12px 24px', borderRadius: 8, border: 'none', background: 'var(--slate-900)', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
                                             Create Demo Loan
                                         </button>
                                     </div>
@@ -640,20 +668,12 @@
         // ======================
         const App = () => {
             const { user, loading, signIn } = useAuth();
-            
             if (loading) return <LoadingSpinner />;
             if (!user) return <SignInScreen onSignIn={signIn} />;
-            
             return <Dashboard />;
         };
         
-        // Render
-        ReactDOM.render(
-            <AuthProvider>
-                <App />
-            </AuthProvider>,
-            document.getElementById('root')
-        );
+        ReactDOM.render(<AuthProvider><App /></AuthProvider>, document.getElementById('root'));
     </script>
 </body>
 </html>
