@@ -387,16 +387,35 @@
                 </div>
             );
             
-            const InputField = ({ label, value, onChange, prefix, suffix }) => (
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', fontSize: 12, color: 'var(--slate-600)', marginBottom: 6, fontWeight: 500 }}>{label}</label>
-                    <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--slate-300)', borderRadius: 8, overflow: 'hidden' }}>
-                        {prefix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{prefix}</span>}
-                        <input type="number" value={value} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} style={{ flex: 1, padding: '10px 12px', border: 'none', outline: 'none', fontSize: 14, width: '100%' }} />
-                        {suffix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{suffix}</span>}
+            const InputField = ({ label, value, onChange, prefix, suffix }) => {
+                const [localValue, setLocalValue] = useState(value);
+                
+                useEffect(() => {
+                    setLocalValue(value);
+                }, [value]);
+                
+                const handleBlur = () => {
+                    onChange(localValue);
+                };
+                
+                return (
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', fontSize: 12, color: 'var(--slate-600)', marginBottom: 6, fontWeight: 500 }}>{label}</label>
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--slate-300)', borderRadius: 8, overflow: 'hidden' }}>
+                            {prefix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{prefix}</span>}
+                            <input 
+                                type="number" 
+                                value={localValue} 
+                                onChange={(e) => setLocalValue(parseFloat(e.target.value) || 0)} 
+                                onBlur={handleBlur}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleBlur(); }}
+                                style={{ flex: 1, padding: '10px 12px', border: 'none', outline: 'none', fontSize: 14, width: '100%' }} 
+                            />
+                            {suffix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{suffix}</span>}
+                        </div>
                     </div>
-                </div>
-            );
+                );
+            };
             
             return (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
