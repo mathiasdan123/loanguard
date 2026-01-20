@@ -387,16 +387,35 @@
                 </div>
             );
             
-            const InputField = ({ label, value, onChange, prefix, suffix }) => (
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', fontSize: 12, color: 'var(--slate-600)', marginBottom: 6, fontWeight: 500 }}>{label}</label>
-                    <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--slate-300)', borderRadius: 8, overflow: 'hidden' }}>
-                        {prefix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{prefix}</span>}
-                        <input type="number" value={value} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} style={{ flex: 1, padding: '10px 12px', border: 'none', outline: 'none', fontSize: 14, width: '100%' }} />
-                        {suffix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{suffix}</span>}
+            const InputField = ({ label, value, onChange, prefix, suffix }) => {
+                const [localValue, setLocalValue] = useState(value);
+                
+                useEffect(() => {
+                    setLocalValue(value);
+                }, [value]);
+                
+                const handleBlur = () => {
+                    onChange(localValue);
+                };
+                
+                return (
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', fontSize: 12, color: 'var(--slate-600)', marginBottom: 6, fontWeight: 500 }}>{label}</label>
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid var(--slate-300)', borderRadius: 8, overflow: 'hidden' }}>
+                            {prefix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{prefix}</span>}
+                            <input 
+                                type="number" 
+                                value={localValue} 
+                                onChange={(e) => setLocalValue(parseFloat(e.target.value) || 0)} 
+                                onBlur={handleBlur}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleBlur(); }}
+                                style={{ flex: 1, padding: '10px 12px', border: 'none', outline: 'none', fontSize: 14, width: '100%' }} 
+                            />
+                            {suffix && <span style={{ padding: '10px 12px', background: 'var(--slate-100)', color: 'var(--slate-600)', fontSize: 14 }}>{suffix}</span>}
+                        </div>
                     </div>
-                </div>
-            );
+                );
+            };
             
             return (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
@@ -492,6 +511,249 @@
         };
         
         // ======================
+        // Calendar Export Component
+        // ======================
+        const CalendarExport = ({ loan, requirements, onClose }) => {
+            const [reminderDays, setReminderDays] = useState([7, 3, 1]);
+            const [selectedReqs, setSelectedReqs] = useState(
+                (requirements || []).filter(r => r.next_due_date).map(r => r.requirement_id)
+            );
+            const [exportSuccess, setExportSuccess] = useState(false);
+            
+            const toggleReq = (id) => {
+                setSelectedReqs(prev => 
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                );
+            };
+            
+            const toggleReminder = (days) => {
+                setReminderDays(prev =>
+                    prev.includes(days) ? prev.filter(x => x !== days) : [...prev, days]
+                );
+            };
+            
+            // Generate ICS file content
+            const generateICS = () => {
+                const events = [];
+                const selectedRequirements = (requirements || []).filter(r => 
+                    selectedReqs.includes(r.requirement_id) && r.next_due_date
+                );
+                
+                selectedRequirements.forEach(req => {
+                    const dueDate = new Date(req.next_due_date);
+                    const dateStr = dueDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                    const uid = `loanguard-${req.requirement_id}-${Date.now()}@loanguard.app`;
+                    
+                    // Main event
+                    let alarms = '';
+                    reminderDays.forEach(days => {
+                        alarms += `
+VALARM
+ACTION:DISPLAY
+DESCRIPTION:${req.title} due in ${days} day${days > 1 ? 's' : ''}
+TRIGGER:-P${days}D
+END:VALARM`;
+                    });
+                    
+                    events.push(`BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${dateStr}
+DTSTART;VALUE=DATE:${dueDate.toISOString().split('T')[0].replace(/-/g, '')}
+DTEND;VALUE=DATE:${dueDate.toISOString().split('T')[0].replace(/-/g, '')}
+SUMMARY:📋 ${req.title}
+DESCRIPTION:Loan: ${loan?.property_name || 'N/A'}\\nCategory: ${(req.category || '').replace('_', ' ')}\\nSeverity: ${req.severity}\\n\\nManage at: https://mathiasdan123.github.io/loanguard/
+LOCATION:LoanGuard Compliance
+STATUS:CONFIRMED${alarms}
+END:VEVENT`);
+                });
+                
+                return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//LoanGuard//Compliance Calendar//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:LoanGuard Deadlines
+${events.join('\n')}
+END:VCALENDAR`;
+            };
+            
+            const downloadICS = () => {
+                const icsContent = generateICS();
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `loanguard-deadlines-${loan?.property_name?.replace(/\s+/g, '-').toLowerCase() || 'export'}.ics`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                setExportSuccess(true);
+                setTimeout(() => setExportSuccess(false), 3000);
+            };
+            
+            const openGoogleCalendar = (req) => {
+                const dueDate = new Date(req.next_due_date);
+                const dateStr = dueDate.toISOString().split('T')[0].replace(/-/g, '');
+                const title = encodeURIComponent(`📋 ${req.title}`);
+                const details = encodeURIComponent(`Loan: ${loan?.property_name || 'N/A'}\nCategory: ${(req.category || '').replace('_', ' ')}\nSeverity: ${req.severity}\n\nManage at: https://mathiasdan123.github.io/loanguard/`);
+                const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateStr}/${dateStr}&details=${details}`;
+                window.open(url, '_blank');
+            };
+            
+            const reqsWithDates = (requirements || []).filter(r => r.next_due_date);
+            
+            return (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                    <div className="animate-fade" style={{ background: 'var(--slate-50)', borderRadius: 20, width: '100%', maxWidth: 700, maxHeight: '90vh', overflow: 'auto' }}>
+                        {/* Header */}
+                        <div style={{ background: 'var(--blue-500)', color: 'white', padding: '24px 32px', borderRadius: '20px 20px 0 0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, marginBottom: 4 }}>📅 Export to Calendar</h2>
+                                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>Never miss a compliance deadline</p>
+                                </div>
+                                <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: 36, height: 36, borderRadius: 8, cursor: 'pointer', fontSize: 18 }}>×</button>
+                            </div>
+                        </div>
+                        
+                        <div style={{ padding: 32 }}>
+                            {/* Success message */}
+                            {exportSuccess && (
+                                <div style={{ background: 'var(--emerald-100)', border: '1px solid var(--emerald-500)', borderRadius: 12, padding: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <span style={{ fontSize: 24 }}>✅</span>
+                                    <div>
+                                        <div style={{ fontWeight: 600, color: 'var(--emerald-700)' }}>Calendar file downloaded!</div>
+                                        <div style={{ fontSize: 13, color: 'var(--emerald-600)' }}>Open the .ics file to add events to your calendar</div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Reminder Settings */}
+                            <div style={{ marginBottom: 24 }}>
+                                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, marginBottom: 12, color: 'var(--slate-700)' }}>🔔 Reminder Settings</h3>
+                                <p style={{ fontSize: 13, color: 'var(--slate-600)', marginBottom: 16 }}>Get notified before each deadline:</p>
+                                <div style={{ display: 'flex', gap: 12 }}>
+                                    {[14, 7, 3, 1].map(days => (
+                                        <button 
+                                            key={days}
+                                            onClick={() => toggleReminder(days)}
+                                            style={{ 
+                                                padding: '10px 16px', 
+                                                borderRadius: 8, 
+                                                border: `2px solid ${reminderDays.includes(days) ? 'var(--blue-500)' : 'var(--slate-300)'}`,
+                                                background: reminderDays.includes(days) ? 'var(--blue-100)' : 'white',
+                                                color: reminderDays.includes(days) ? 'var(--blue-500)' : 'var(--slate-600)',
+                                                cursor: 'pointer',
+                                                fontWeight: 600,
+                                                fontSize: 13
+                                            }}
+                                        >
+                                            {days} day{days > 1 ? 's' : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Deadlines to export */}
+                            <div style={{ marginBottom: 24 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--slate-700)' }}>📋 Select Deadlines</h3>
+                                    <button 
+                                        onClick={() => setSelectedReqs(selectedReqs.length === reqsWithDates.length ? [] : reqsWithDates.map(r => r.requirement_id))}
+                                        style={{ fontSize: 13, color: 'var(--blue-500)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+                                    >
+                                        {selectedReqs.length === reqsWithDates.length ? 'Deselect all' : 'Select all'}
+                                    </button>
+                                </div>
+                                
+                                {reqsWithDates.length === 0 ? (
+                                    <div style={{ background: 'var(--slate-100)', borderRadius: 12, padding: 24, textAlign: 'center' }}>
+                                        <p style={{ color: 'var(--slate-500)' }}>No requirements with due dates found</p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 250, overflowY: 'auto' }}>
+                                        {reqsWithDates.map(req => (
+                                            <div 
+                                                key={req.requirement_id}
+                                                onClick={() => toggleReq(req.requirement_id)}
+                                                style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    gap: 12, 
+                                                    padding: 16, 
+                                                    background: 'white', 
+                                                    borderRadius: 12, 
+                                                    border: `2px solid ${selectedReqs.includes(req.requirement_id) ? 'var(--blue-500)' : 'var(--slate-200)'}`,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <div style={{ 
+                                                    width: 24, 
+                                                    height: 24, 
+                                                    borderRadius: 6, 
+                                                    border: `2px solid ${selectedReqs.includes(req.requirement_id) ? 'var(--blue-500)' : 'var(--slate-300)'}`,
+                                                    background: selectedReqs.includes(req.requirement_id) ? 'var(--blue-500)' : 'white',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'white',
+                                                    fontSize: 14
+                                                }}>
+                                                    {selectedReqs.includes(req.requirement_id) && '✓'}
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontWeight: 600, fontSize: 14 }}>{req.title}</div>
+                                                    <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>Due: {formatDate(req.next_due_date)}</div>
+                                                </div>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); openGoogleCalendar(req); }}
+                                                    style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--slate-300)', background: 'white', cursor: 'pointer', fontSize: 11, fontWeight: 500 }}
+                                                >
+                                                    + Google
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Export buttons */}
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <button 
+                                    onClick={downloadICS}
+                                    disabled={selectedReqs.length === 0}
+                                    style={{ 
+                                        flex: 1,
+                                        padding: '14px 24px', 
+                                        borderRadius: 12, 
+                                        border: 'none', 
+                                        background: selectedReqs.length === 0 ? 'var(--slate-300)' : 'var(--slate-900)', 
+                                        color: 'white', 
+                                        cursor: selectedReqs.length === 0 ? 'not-allowed' : 'pointer', 
+                                        fontSize: 14, 
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8
+                                    }}
+                                >
+                                    📥 Download .ics File ({selectedReqs.length})
+                                </button>
+                            </div>
+                            
+                            <p style={{ fontSize: 12, color: 'var(--slate-500)', marginTop: 16, textAlign: 'center' }}>
+                                Works with Apple Calendar, Outlook, Google Calendar, and more
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // ======================
         // Main Dashboard
         // ======================
         const Dashboard = () => {
@@ -504,6 +766,7 @@
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [showCalculator, setShowCalculator] = useState(false);
+            const [showCalendar, setShowCalendar] = useState(false);
             
             useEffect(() => {
                 const loadData = async () => {
@@ -576,6 +839,9 @@
                     {/* Calculator Modal */}
                     {showCalculator && <CovenantCalculator loan={loanDetail} onClose={() => setShowCalculator(false)} />}
                     
+                    {/* Calendar Modal */}
+                    {showCalendar && <CalendarExport loan={loanDetail} requirements={loanDetail?.requirements} onClose={() => setShowCalendar(false)} />}
+                    
                     {/* Main Content */}
                     <main style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
                         {error && (
@@ -592,6 +858,9 @@
                                     </button>
                                     <button onClick={() => setShowCalculator(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--slate-900)', color: 'white', cursor: 'pointer', fontSize: 14 }}>
                                         🧮 Test Covenants
+                                    </button>
+                                    <button onClick={() => setShowCalendar(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--blue-500)', color: 'white', cursor: 'pointer', fontSize: 14 }}>
+                                        📅 Export to Calendar
                                     </button>
                                 </div>
                                 
